@@ -4,9 +4,11 @@ def f(v,d=0):return 'unavailable' if v is None else f'{v:.{d}f}'
 def sensor_label(source='VIIRS_SNPP_NRT'):
     fam=(source or '').split('_')[0]
     return {'VIIRS':'NASA FIRMS – VIIRS','MODIS':'NASA FIRMS – MODIS'}.get(fam,'NASA FIRMS')
-def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None):
+def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_alerts=None):
  c=w.get('current',{}); m=a['weather_metrics']; h=a['hazards']
  parts=[f"At this location, temperature is {f(c.get('temperature_c'),1)}°C and feels near {f(c.get('apparent_temperature_c'),1)}°C. Winds are {f(c.get('wind_speed_kmh'))} km/h from {compass(c.get('wind_direction_deg'))}, gusting near {f(c.get('wind_gust_kmh'))} km/h."]
+ wx=(wx_alerts or {}).get('alerts') or []
+ if wx:parts.append(f"Environment Canada has {len(wx)} active alert(s) in effect for this exact location: {', '.join(sorted(set(x['name'] for x in wx)))}.")
  parts.append(f"The nearest current AQHI is {faqhi(aq.get('aqhi'))} at {aq.get('station_name','the nearest point')}, {f(aq.get('distance_km'),1)} km away." if aq.get('aqhi') is not None else 'A valid current AQHI was not available for this location.')
  pollutant=(aq.get('pollutant') or {})
  if pollutant.get('status')=='ok':parts.append(f"The nearest air monitoring station ({pollutant.get('station_name')}, {f(pollutant.get('distance_km'),1)} km) reports fine particulate matter (PM2.5) at {f(pollutant.get('value'),1)} µg/m³.")
@@ -42,6 +44,7 @@ def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None):
  if h['wind']['risk'] in ('HIGH','EXTREME'):rec.append('High wind — secure loose equipment, use caution with ladders/elevated work.')
  if h['precipitation']['risk'] in ('HIGH','EXTREME'):rec.append('Heavy precipitation possible — plan for wet-weather PPE and footing hazards.')
  if closures:rec.append('Confirm an alternate route — a full closure is reported near this location.')
+ if wx:rec.append(f"Active Environment Canada alert(s) for this location — review details before starting work: {', '.join(sorted(set(x['name'] for x in wx)))}.")
  aqmsg=eccc_messages(h['air_quality']['risk'])
  if aqmsg:
   rec.append(f"Environment Canada AQHI guidance — general population: {aqmsg['general']}")

@@ -10,3 +10,21 @@ def bearing_deg(a,b,c,d):
 def compass(v):
     if v is None:return 'unknown'
     return ['N','NE','E','SE','S','SW','W','NW'][round(v/45)%8]
+def _point_in_ring(lat,lon,ring):
+    inside=False; n=len(ring)
+    for i in range(n):
+        x1,y1=ring[i]; x2,y2=ring[(i+1)%n]
+        if ((y1>lat)!=(y2>lat)) and (lon<(x2-x1)*(lat-y1)/(y2-y1)+x1):
+            inside=not inside
+    return inside
+def point_in_geometry(lat,lon,geometry):
+    if not geometry:return False
+    t=geometry.get('type'); coords=geometry.get('coordinates') or []
+    if t=='Polygon':polys=[coords]
+    elif t=='MultiPolygon':polys=coords
+    else:return False
+    for poly in polys:
+        if not poly:continue
+        if _point_in_ring(lat,lon,poly[0]) and not any(_point_in_ring(lat,lon,hole) for hole in poly[1:]):
+            return True
+    return False
