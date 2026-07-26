@@ -50,4 +50,4 @@ def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_ale
   rec.append(f"Environment Canada AQHI guidance — general population: {aqmsg['general']}")
   rec.append(f"Environment Canada AQHI guidance — at-risk populations: {aqmsg['at_risk']}")
  if not rec:rec=['No elevated hazards detected for this location at this time.']
- return {'headline':headline,'summary':' '.join(parts),'recommendations':rec}
+ return {'headline':headline,'summary':' '.join(parts),'summary_points':parts,'recommendations':rec}
