@@ -1,6 +1,9 @@
-import requests
+import re,requests
 from core.geometry import haversine_km,bearing_deg,compass
 BASE='https://511.alberta.ca/api/v2/get'
+def strip_html(text):
+    if not text:return text
+    return re.sub(r'\s+',' ',re.sub(r'<[^>]+>','',text)).strip()
 def load_nearby_events(lat,lon,radius_km=15,timeout=15):
     try:
         r=requests.get(f'{BASE}/event',params={'format':'json'},timeout=timeout); r.raise_for_status()
@@ -39,4 +42,4 @@ def load_active_alerts(timeout=15,limit=5):
         rows=r.json()
     except Exception as ex:
         return {'status':'error','error':f'{type(ex).__name__}: {ex}'}
-    return {'status':'ok','count':len(rows),'alerts':[{'message':a.get('Message'),'notes':a.get('Notes')} for a in rows[:limit]],'note':'Province-wide bulletins, not filtered by location.'}
+    return {'status':'ok','count':len(rows),'alerts':[{'message':a.get('Message'),'notes':strip_html(a.get('Notes'))} for a in rows[:limit]],'note':'Province-wide bulletins, not filtered by location.'}

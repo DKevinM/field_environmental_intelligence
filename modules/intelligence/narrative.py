@@ -32,7 +32,8 @@ def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_ale
  elif other_events:
   parts.append(f"{len(other_events)} road event(s)/incident(s) reported within range, nearest: {other_events[0].get('roadway') or 'unnamed roadway'} ({f(other_events[0].get('distance_km'),1)} km {other_events[0].get('direction','')}).")
  if alerts and alerts.get('status')=='ok' and alerts.get('count'):
-  parts.append(f"{alerts['count']} active province-wide weather alert(s) in effect (not location-filtered) — check details before travel.")
+  msgs=', '.join(x.get('message') or '' for x in alerts.get('alerts',[]) if x.get('message'))
+  parts.append(f"{alerts['count']} active province-wide travel bulletin(s) from 511 Alberta (not location-filtered, may not apply here): {msgs}." if msgs else f"{alerts['count']} active province-wide weather alert(s) in effect (not location-filtered) — check details before travel.")
  if fx and fx.get('plus_3h') is not None:parts.append(f"The AQHI forecast for the next few hours is {faqhi(fx.get('plus_3h'))}.")
  if m.get('thunderstorm_possible'):parts.append('Thunderstorm conditions appear in the hourly forecast for this location.')
  elif (m.get('max_precipitation_probability_pct') or 0)>=40:parts.append(f"Precipitation probability reaches approximately {f(m.get('max_precipitation_probability_pct'))}%.")
