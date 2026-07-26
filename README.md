@@ -12,8 +12,8 @@ Deliberately does **not** run the back-trajectory smoke-source model that the Ca
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export FIRMS_API_KEY=...    # see /opt/airquality/config/intelligence.env on the server
-uvicorn main:app --host 0.0.0.0 --port 8811
+echo "FIRMS_API_KEY=..." > .env    # see /opt/airquality/config/intelligence.env on the server
+uvicorn main:app --host 127.0.0.1 --port 8811
 ```
 
 Then open `http://localhost:8811/`.
@@ -26,18 +26,17 @@ python -m unittest discover -s tests -v
 
 ## Notes
 
-- `FIRMS_API_KEY` must be set as an environment variable — never commit it.
+- `FIRMS_API_KEY` must be set as an environment variable (via `.env`, gitignored) — never commit it.
 - AQHI/PM2.5 data is read from AB_datapull's local output files (`/opt/airquality/github/AB_datapull/...`), same source as the Calgary sit-rep.
 - 511 Alberta endpoints (cameras, road events, weather stations, alerts) need no API key but are rate-limited to 10 calls/60s.
-- Not yet exposed publicly — currently runs on localhost only. Making this reachable by actual field workers needs a decision on hosting/access (public port + auth vs. internal/VPN) before going further.
+- No auth in front of `/report` yet — anyone with the URL can hit it. Fine for field-worker rollout for now, worth revisiting before wider use.
 
-## Public map front-end (GitHub Pages)
+## Production setup (on this server)
 
-`docs/index.html` is a standalone copy of the map/click/geolocation page (identical to `templates/index.html`) meant to be hosted on GitHub Pages instead of served by this app. Reasoning: Pages gives free HTTPS, which the geolocation button needs to work on a phone, without waiting on backend hosting. On click or "use my location" it does a plain full-page redirect to `BACKEND_URL + /report?lat=...&lon=...` — not a fetch, so no CORS/mixed-content issue even while the backend is plain HTTP.
+The app runs as the `field-conditions` systemd service, bound to `127.0.0.1:8811` only — it is **not** reachable directly from the internet, no port is opened in any firewall. Public access goes through a **Cloudflare Tunnel** instead: the `cloudflared` systemd service holds an outbound-only connection to Cloudflare, which exposes it as `https://field.krmenvironmental.com` (tunnel `field-conditions`, config at `/etc/cloudflared/config.yml`). This was chosen over opening a port because it needs no inbound firewall rule at all — the server never accepts a connection from the public internet, only Cloudflare's edge relays to it outbound-initiated.
 
-To turn it on: repo Settings → Pages → Source: Deploy from branch → `main` / `/docs`.
+`docs/index.html` is a standalone copy of the map/click/geolocation page (identical to `templates/index.html`), hosted on **GitHub Pages** instead of served by this app, pointed at `BACKEND_URL = 'https://field.krmenvironmental.com'`. Reasoning: Pages gives free HTTPS, which the geolocation button needs to work on a phone. On click or "use my location" it does a plain full-page redirect to `BACKEND_URL + /report?lat=...&lon=...` — not a fetch, so no CORS issue.
 
-Still open, in `docs/index.html`'s `BACKEND_URL` constant:
-- Currently hardcoded to `http://207.126.161.96:8811` (this server's IP, the port `uvicorn` binds above). Update it if that changes.
-- The app already binds `--host 0.0.0.0`, and there's no local firewall (ufw is inactive) blocking it — so reachability depends on the Kamatera cloud firewall/security group allowing inbound 8811, which hasn't been opened yet. The service also isn't currently running (nothing needs it while it's not public).
-- No auth in front of `/report` yet — anyone with the URL can hit it. Fine for now, worth revisiting before wide rollout.
+To serve it: repo Settings → Pages → Source: Deploy from branch → `main` / `/docs`.
+
+Both systemd services (`field-conditions`, `cloudflared`) are enabled and start on boot. Useful commands: `systemctl status field-conditions cloudflared`, `journalctl -u field-conditions -f`.
