@@ -1,11 +1,12 @@
 from core.geometry import haversine_km,bearing_deg,compass
-from core.io import read_structured_source
+from core.io import read_structured_source,read_structured_source_cached
 AK=('AQHI','aqhi','value','Value','current_aqhi'); LAT=('latitude','lat','Latitude','LAT'); LON=('longitude','lon','lng','Longitude','LON')
 STATION=('station_name','name','station','StationName'); TIME=('timestamp','datetime','time','observed_at','ReadingDate')
 F3H=('aqhi_3h','AQHI_3H','aqhi_future_3h','forecast_3h','AQHI_forecast_3h','aqhi_forecast_3h')
 CURRENT_SOURCE="/opt/airquality/github/AB_datapull/data/output/aqhi_station_forecast_3h.csv"
 FORECAST_SOURCE="/opt/airquality/github/AB_datapull/data/output/aqhi_station_forecast_3h.csv"
 BLEND_GRID_FILE="/opt/airquality/github/AB_datapull/data/output/AQHI_Alberta_blend.geojson"
+FIRESMOKE_FILE="/opt/airquality/github/AB_datapull/data/output/firesmoke_now.geojson"
 POLLUTANT_SOURCE="/opt/airquality/github/AB_datapull/data/last6h.csv"
 PURPLEAIR_SOURCE="/opt/airquality/github/AB_datapull/data/AB_PM25_map.json"
 def first(d,ks):
@@ -50,7 +51,7 @@ def load_forecast_aqhi(lat,lon,radius_km=30):
     d,r,dist=min(cand,key=lambda x:x[0]); plus3=num(first(r,F3H)); plus3=round(plus3,1) if plus3 is not None else None
     return {'status':'ok' if plus3 is not None else 'missing','station_name':first(r,STATION) or 'Nearest forecast point','distance_km':round(dist,2) if dist is not None else None,'valid_at':first(r,('forecast_valid_time_utc','valid_time','forecast_time')),'plus_3h':plus3}
 def load_blend_estimate(lat,lon):
-    try:data=read_structured_source(BLEND_GRID_FILE)
+    try:data=read_structured_source_cached(BLEND_GRID_FILE)
     except Exception as ex:return {'status':'error','error':f'{type(ex).__name__}: {ex}'}
     for f in data.get('features',[]):
         g=f.get('geometry') or {}
