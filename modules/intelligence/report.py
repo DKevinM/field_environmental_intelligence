@@ -20,7 +20,7 @@ MAP_JS='''(function(){
   var fireLayer=L.layerGroup(FIRE.map(function(f){return L.circleMarker([f.lat,f.lon],{radius:7,color:'#fff',weight:1,fillColor:'#ff6b35',fillOpacity:0.9}).bindPopup('Active fire (NASA FIRMS)<br>'+f.distance_km+' km '+f.direction);}));
   var camLayer=L.layerGroup(CAMERAS.map(function(c){return L.circleMarker([c.lat,c.lon],{radius:6,color:'#fff',weight:1,fillColor:'#48cae4',fillOpacity:0.9}).bindPopup('<b>'+c.name+'</b><br>'+c.distance_km+' km '+c.direction);}));
   var eventLayer=L.layerGroup(EVENTS.map(function(e){return L.circleMarker([e.lat,e.lon],{radius:7,color:'#fff',weight:1,fillColor:e.is_full_closure?'#c92a2a':'#e0a800',fillOpacity:0.9}).bindPopup('<b>'+(e.roadway||'Road event')+'</b><br>'+(e.description||'')+'<br>'+e.distance_km+' km '+e.direction);}));
-  aqhiLayer.addTo(map);smokeLayer.addTo(map);paLayer.addTo(map);stationLayer.addTo(map);fireLayer.addTo(map);camLayer.addTo(map);eventLayer.addTo(map);
+  smokeLayer.addTo(map);paLayer.addTo(map);stationLayer.addTo(map);fireLayer.addTo(map);camLayer.addTo(map);eventLayer.addTo(map);
   L.control.layers(null,{'AQHI grid':aqhiLayer,'Smoke (PM2.5 model)':smokeLayer,'Community sensors':paLayer,'Official stations':stationLayer,'Active fires':fireLayer,'Traffic cameras':camLayer,'Road events':eventLayer},{collapsed:false}).addTo(map);
 })();'''
 def build_map_section(lat,lon,fire,cameras,events,mp=None):
