@@ -4,9 +4,10 @@ def f(v,d=0):return 'unavailable' if v is None else f'{v:.{d}f}'
 def sensor_label(source='VIIRS_SNPP_NRT'):
     fam=(source or '').split('_')[0]
     return {'VIIRS':'NASA FIRMS – VIIRS','MODIS':'NASA FIRMS – MODIS'}.get(fam,'NASA FIRMS')
-def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_alerts=None):
+def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_alerts=None,radar=None):
  c=w.get('current',{}); m=a['weather_metrics']; h=a['hazards']
  parts=[f"At this location, temperature is {f(c.get('temperature_c'),1)}°C and feels near {f(c.get('apparent_temperature_c'),1)}°C. Winds are {f(c.get('wind_speed_kmh'))} km/h from {compass(c.get('wind_direction_deg'))}, gusting near {f(c.get('wind_gust_kmh'))} km/h."]
+ if (radar or {}).get('status')=='ok' and radar.get('nearest_km') is not None:parts.append(f"Environment Canada radar shows precipitation echo within {radar['nearest_km']} km of this location right now.")
  wx=(wx_alerts or {}).get('alerts') or []
  if wx:parts.append(f"Environment Canada has {len(wx)} active alert(s) in effect for this exact location: {', '.join(sorted(set(x['name'] for x in wx)))}.")
  parts.append(f"The nearest current AQHI is {faqhi(aq.get('aqhi'))} at {aq.get('station_name','the nearest point')}, {f(aq.get('distance_km'),1)} km away." if aq.get('aqhi') is not None else 'A valid current AQHI was not available for this location.')
@@ -41,6 +42,9 @@ def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_ale
  headline=f"Overall conditions at this location are {a['overall_risk']}."+(f" Primary concerns are {', '.join(key)}." if key else '')
  parts.append(headline); rec=[]
  if h['thunderstorm']['risk'] in ('HIGH','EXTREME'):rec.append('Lightning risk present — confirm shelter/pause procedures before working outdoors.')
+ if h['lightning']['risk']=='EXTREME':rec.append(f"Lightning detected within {h['lightning']['indicator']} km (Environment Canada CLDN, live) — shelter immediately, this is a real-time detection, not a forecast.")
+ elif h['lightning']['risk']=='HIGH':rec.append(f"Lightning detected within {h['lightning']['indicator']} km (Environment Canada CLDN, live) — monitor closely and be ready to shelter.")
+ if h['wind_shear']['risk'] in ('HIGH','EXTREME'):rec.append('Surface and upper-level winds are diverging sharply — expect smoke/dust/plume transport direction to differ from surface wind and reassess more frequently.')
  if h['heat']['risk'] in ('HIGH','EXTREME'):rec.append('High heat — increase hydration, take shade breaks, watch for heat-illness symptoms.')
  if h['wind']['risk'] in ('HIGH','EXTREME'):rec.append('High wind — secure loose equipment, use caution with ladders/elevated work.')
  if h['precipitation']['risk'] in ('HIGH','EXTREME'):rec.append('Heavy precipitation possible — plan for wet-weather PPE and footing hazards.')

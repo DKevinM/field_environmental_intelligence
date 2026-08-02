@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -9,6 +10,8 @@ from modules.fire.service import load_hotspots
 from modules.roads.service import load_nearby_events,load_nearby_weatherstations,load_active_alerts
 from modules.roads.cameras import load_nearby_cameras
 from modules.alerts.service import load_weather_alerts
+from modules.intelligence.fast_watch import check_lightning, check_radar_echo
+from modules.wind_shear.service import load_wind_shear
 from modules.intelligence import map_layers
 from modules.intelligence.hazard_engine import assess
 from modules.intelligence.narrative import build as build_narrative
@@ -34,7 +37,15 @@ def report(lat:float=Query(...,ge=-90,le=90),lon:float=Query(...,ge=-180,le=180)
     wx_alerts=load_weather_alerts(lat,lon)
     cameras=load_nearby_cameras(lat,lon)
     mp=map_layers.build(lat,lon)
-    a=assess(w,aq,fx,TZ)
-    n=build_narrative(w,aq,fx,a,fire,events,alerts,ws.get('nearest') if ws.get('status')=='ok' else None,wx_alerts)
+    # These three are independent network calls (Supabase + two GeoMet WMS
+    # fetches) — run concurrently rather than adding ~1.5-2.5s sequentially
+    # on top of an endpoint that already targets "a couple seconds".
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        shear_f=ex.submit(load_wind_shear,lat,lon)
+        lightning_f=ex.submit(check_lightning,lat,lon)
+        radar_f=ex.submit(check_radar_echo,lat,lon)
+        shear=shear_f.result(); lightning=lightning_f.result(); radar=radar_f.result()
+    a=assess(w,aq,fx,TZ,shear=shear,lightning=lightning)
+    n=build_narrative(w,aq,fx,a,fire,events,alerts,ws.get('nearest') if ws.get('status')=='ok' else None,wx_alerts,radar)
     now=datetime.now(ZoneInfo(TZ)).isoformat(timespec='seconds')
     return build_html(lat,lon,now,TZ,w,aq,fx,a,n,fire,cameras,events,alerts,wx_alerts,mp)
