@@ -6,6 +6,12 @@ from core.geometry import compass
 from modules.weather.codes import label as weather_label
 R={'LOW':'low','MODERATE':'moderate','HIGH':'high','EXTREME':'extreme','UNKNOWN':'unknown'}
 def v(x,s=''):return '—' if x is None else f'{x}{s}'
+def _hazard_value_html(k,x):
+ if k=='precipitation' and x.get('probability_pct') is not None:
+  ph=x.get('peak_in_hours')
+  when=' within the hour' if ph==0 else (f' in next {ph}h' if ph is not None else '')
+  return f"{v(x.get('probability_pct'),'%')} chance &middot; up to {v(x.get('indicator'),' mm/h')}{when}"
+ return f"{v(cap_aqhi(x.get('indicator')) if k=='air_quality' else x.get('indicator'))} {x.get('unit','')}"
 MAP_JS='''(function(){
   var map=L.map('fieldmap',{scrollWheelZoom:false}).setView([POINT.lat,POINT.lon],12);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap contributors &copy; CARTO',maxZoom:19}).addTo(map);
@@ -48,7 +54,7 @@ def build_html(lat,lon,generated_at,tz,w,aq,fx,a,n,fire,cameras,events,alerts,wx
   wx_section=f'<section class="panel" style="border-color:#e0a800"><p style="margin:0">⚠ Could not retrieve Environment Canada weather alerts for this location{" (" + escape(str((wx_alerts or {}).get("error"))) + ")" if (wx_alerts or {}).get("error") else ""} — check manually before relying on this report.</p></section>'
  bulletins=(alerts or {}).get('alerts') or []
  bulletin_section=('<section class="panel" style="border-color:#e0a800"><h2>Provincial travel bulletins (511 Alberta)</h2><p style="font-size:13px;color:#9fb0bf;margin-top:0">Province-wide, not filtered to this specific location — confirm relevance before acting on it.</p>'+''.join(f"<article style='margin-bottom:12px'><b>{escape(x.get('message') or '')}</b><div style='font-size:14px;color:#c9d4de;margin-top:6px'>{escape(x.get('notes') or '')}</div></article>" for x in bulletins)+'</section>') if bulletins else ''
- cards=''.join(f"<article class='hazard {R.get(x['risk'],'unknown')}'><small>{k.replace('_',' ').title()}</small><b>{x['risk']}</b><span>{v(cap_aqhi(x.get('indicator')) if k=='air_quality' else x.get('indicator'))} {x.get('unit','')}</span></article>" for k,x in a['hazards'].items())
+ cards=''.join(f"<article class='hazard {R.get(x['risk'],'unknown')}'><small>{k.replace('_',' ').title()}</small><b>{x['risk']}</b><span>{_hazard_value_html(k,x)}</span></article>" for k,x in a['hazards'].items())
  rec=''.join(f'<li>{escape(x)}</li>' for x in n['recommendations'])
  summary_bullets=''.join(f'<li>{escape(x)}</li>' for x in n.get('summary_points') or [n['summary']])
  cams=(cameras or {}).get('cameras',[])

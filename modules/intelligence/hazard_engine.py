@@ -1,5 +1,5 @@
 from modules.weather.metrics import humidex,summarize
-from core.timefmt import format_short
+from core.timefmt import format_short,localize
 R={'UNKNOWN':-1,'LOW':0,'MODERATE':1,'HIGH':2,'EXTREME':3}
 THRESHOLDS={
  'heat':{'moderate_c':27,'high_c':30,'extreme_c':35},
@@ -16,6 +16,11 @@ def level(v,m,h,e=None):
     if v>=m:return 'MODERATE'
     return 'LOW'
 def top(*x):return max(x,key=lambda z:R[z])
+def _hours_until(when,observed_at,tz):
+    if not when or not observed_at:return None
+    now_dt=localize(observed_at,tz); when_dt=localize(when,tz)
+    if not now_dt or not when_dt:return None
+    return max(0,round((when_dt-now_dt).total_seconds()/3600))
 def lightning_risk(nearest_km):
     if nearest_km is None:return 'LOW'
     if nearest_km<=10:return 'EXTREME'  # the "30-30 rule" shelter threshold
@@ -27,7 +32,7 @@ def assess(w,aq,fx,tz='America/Edmonton',thresholds=None,shear=None,lightning=No
     heat=level(heatv,t['heat']['moderate_c'],t['heat']['high_c'],t['heat']['extreme_c']); wind=level(gust,t['wind_gust_kmh']['moderate'],t['wind_gust_kmh']['high'],t['wind_gust_kmh']['extreme'])
     rain=top(level(s.get('max_precipitation_probability_pct'),t['precipitation_probability']['moderate'],t['precipitation_probability']['high']),level(s.get('max_hourly_precipitation_mm'),t['precipitation_mm_hour']['moderate'],t['precipitation_mm_hour']['high']))
     av=max([v for v in (aq.get('aqhi'),(fx or {}).get('plus_3h')) if v is not None],default=None); air=level(av,t['aqhi']['moderate'],t['aqhi']['high'],t['aqhi']['extreme']); thunder='HIGH' if s['thunderstorm_possible'] else ('MODERATE' if (s.get('max_precipitation_probability_pct') or 0)>=60 and (gust or 0)>=45 else 'LOW')
-    hazards={'heat':{'risk':heat,'indicator':heatv,'unit':'°C apparent/humidex'},'wind':{'risk':wind,'indicator':gust,'unit':'km/h peak gust'},'precipitation':{'risk':rain,'indicator':s.get('max_hourly_precipitation_mm'),'unit':'mm/h maximum'},'air_quality':{'risk':air,'indicator':av,'unit':'AQHI'},'thunderstorm':{'risk':thunder,'indicator':format_short(s.get('first_thunderstorm_hour'),tz),'unit':'first forecast signal'}}
+    hazards={'heat':{'risk':heat,'indicator':heatv,'unit':'°C apparent/humidex'},'wind':{'risk':wind,'indicator':gust,'unit':'km/h peak gust'},'precipitation':{'risk':rain,'indicator':s.get('max_hourly_precipitation_mm'),'unit':'mm/h maximum','probability_pct':s.get('max_precipitation_probability_pct'),'peak_in_hours':_hours_until(s.get('max_hourly_precipitation_time'),w.get('observed_at'),tz)},'air_quality':{'risk':air,'indicator':av,'unit':'AQHI'},'thunderstorm':{'risk':thunder,'indicator':format_short(s.get('first_thunderstorm_hour'),tz),'unit':'first forecast signal'}}
     # Wind shear: surface vs upper-level HRDPS wind direction divergence (see modules/wind_shear)
     shear=shear or {}; ts=t.get('wind_shear',{'moderate':45,'high':90,'extreme':135})
     hazards['wind_shear']={'risk':level(shear.get('direction_diff_deg'),ts['moderate'],ts['high'],ts['extreme']),'indicator':shear.get('direction_diff_deg'),'unit':f"° direction diff ({shear.get('low_level_m',10)}m vs {shear.get('high_level_m',120)}m)"}
