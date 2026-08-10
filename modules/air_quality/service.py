@@ -1,5 +1,6 @@
 from core.geometry import haversine_km,bearing_deg,compass
 from core.io import read_structured_source,read_structured_source_cached
+from core.aqhi import pm25_to_eaqhi
 AK=('AQHI','aqhi','value','Value','current_aqhi'); LAT=('latitude','lat','Latitude','LAT'); LON=('longitude','lon','lng','Longitude','LON')
 STATION=('station_name','name','station','StationName'); TIME=('timestamp','datetime','time','observed_at','ReadingDate')
 F3H=('aqhi_3h','AQHI_3H','aqhi_future_3h','forecast_3h','AQHI_forecast_3h','aqhi_forecast_3h')
@@ -25,6 +26,26 @@ def records(data):
             out.append(p)
         return out
     return [data] if isinstance(data,dict) else []
+def load_purpleair_eaqhi_estimate(lat,lon,radius_km=25,n=3):
+    """Fail-safe for when official station AQHI is unavailable: average the
+    n nearest PurpleAir sensors' PM2.5 and convert to an eAQHI proxy via the
+    same breakpoints SK_datapull already uses elsewhere. A lower-confidence
+    estimate, not an official reading."""
+    try:rows=read_structured_source(PURPLEAIR_SOURCE)
+    except Exception as ex:return {'status':'error','error':f'{type(ex).__name__}: {ex}'}
+    cand=[]
+    for r in rows:
+        if not r.get('use_for_map'):continue
+        la,lo=r.get('latitude'),r.get('longitude')
+        if la is None or lo is None:continue
+        pm=r.get('pm_corr') if r.get('pm_corr') is not None else r.get('pm2.5_atm')
+        if pm is None:continue
+        d=haversine_km(lat,lon,la,lo)
+        if d<=radius_km:cand.append((d,r,pm))
+    if not cand:return {'status':'missing'}
+    nearest=sorted(cand,key=lambda x:x[0])[:n]
+    avg_pm=sum(x[2] for x in nearest)/len(nearest)
+    return {'status':'ok','aqhi':pm25_to_eaqhi(avg_pm),'pm25_avg':round(avg_pm,1),'n_sensors':len(nearest),'sensor_names':[x[1].get('name') for x in nearest],'max_distance_km':round(nearest[-1][0],2)}
 def load_current_aqhi(lat,lon,radius_km=30):
     try:data=read_structured_source(CURRENT_SOURCE)
     except Exception as ex:return {'status':'error','error':f'{type(ex).__name__}: {ex}'}
@@ -34,7 +55,11 @@ def load_current_aqhi(lat,lon,radius_km=30):
         if v and la is not None and lo is not None:
             d=haversine_km(lat,lon,la,lo)
             if d<=radius_km:cand.append((d,r,v,la,lo))
-    if not cand:return {'status':'missing','aqhi':None}
+    if not cand:
+        est=load_purpleair_eaqhi_estimate(lat,lon)
+        if est.get('status')=='ok':
+            return {'status':'estimated','aqhi':est['aqhi'],'station_name':f"eAQHI estimate ({est['n_sensors']} nearby sensors)",'estimate':est}
+        return {'status':'missing','aqhi':None}
     d,r,v,la,lo=min(cand,key=lambda x:x[0]); b=bearing_deg(lat,lon,la,lo)
     return {'status':'ok','aqhi':round(v,1),'station_name':first(r,STATION) or 'Nearest AQHI point','timestamp':first(r,TIME),'distance_km':round(d,2),'direction':compass(b)}
 def load_forecast_aqhi(lat,lon,radius_km=30):
