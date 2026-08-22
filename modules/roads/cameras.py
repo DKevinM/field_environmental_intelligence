@@ -1,9 +1,11 @@
-import requests
+import os,requests
 from core.geometry import haversine_km,bearing_deg,compass
 BASE='https://511.alberta.ca/api/v2/get/cameras'
 def load_nearby_cameras(lat,lon,radius_km=15,max_cameras=4,timeout=15):
+    key=os.environ.get('AB511_API_KEY')
+    if not key:return {'status':'missing','reason':'AB511_API_KEY not set in environment'}
     try:
-        r=requests.get(BASE,params={'format':'json'},timeout=timeout); r.raise_for_status()
+        r=requests.get(BASE,params={'format':'json','key':key},timeout=timeout); r.raise_for_status()
         rows=r.json()
     except Exception as ex:
         return {'status':'error','error':f'{type(ex).__name__}: {ex}'}

@@ -1,12 +1,14 @@
-import re,requests
+import os,re,requests
 from core.geometry import haversine_km,bearing_deg,compass
 BASE='https://511.alberta.ca/api/v2/get'
 def strip_html(text):
     if not text:return text
     return re.sub(r'\s+',' ',re.sub(r'<[^>]+>','',text)).strip()
 def load_nearby_events(lat,lon,radius_km=15,timeout=15):
+    key=os.environ.get('AB511_API_KEY')
+    if not key:return {'status':'missing','reason':'AB511_API_KEY not set in environment'}
     try:
-        r=requests.get(f'{BASE}/event',params={'format':'json'},timeout=timeout); r.raise_for_status()
+        r=requests.get(f'{BASE}/event',params={'format':'json','key':key},timeout=timeout); r.raise_for_status()
         rows=r.json()
     except Exception as ex:
         return {'status':'error','error':f'{type(ex).__name__}: {ex}'}
@@ -21,8 +23,10 @@ def load_nearby_events(lat,lon,radius_km=15,timeout=15):
     cand.sort(key=lambda x:x['distance_km'])
     return {'status':'ok','count':len(cand),'events':cand[:15]}
 def load_nearby_weatherstations(lat,lon,radius_km=40,timeout=15):
+    key=os.environ.get('AB511_API_KEY')
+    if not key:return {'status':'missing','reason':'AB511_API_KEY not set in environment'}
     try:
-        r=requests.get(f'{BASE}/weatherstations',params={'format':'json'},timeout=timeout); r.raise_for_status()
+        r=requests.get(f'{BASE}/weatherstations',params={'format':'json','key':key},timeout=timeout); r.raise_for_status()
         rows=r.json()
     except Exception as ex:
         return {'status':'error','error':f'{type(ex).__name__}: {ex}'}
@@ -37,8 +41,10 @@ def load_nearby_weatherstations(lat,lon,radius_km=40,timeout=15):
     cand.sort(key=lambda x:x['distance_km'])
     return {'status':'ok','count':len(cand),'nearest':cand[0]}
 def load_active_alerts(timeout=15,limit=5):
+    key=os.environ.get('AB511_API_KEY')
+    if not key:return {'status':'missing','reason':'AB511_API_KEY not set in environment'}
     try:
-        r=requests.get(f'{BASE}/alerts',params={'format':'json'},timeout=timeout); r.raise_for_status()
+        r=requests.get(f'{BASE}/alerts',params={'format':'json','key':key},timeout=timeout); r.raise_for_status()
         rows=r.json()
     except Exception as ex:
         return {'status':'error','error':f'{type(ex).__name__}: {ex}'}
