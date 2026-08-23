@@ -29,7 +29,7 @@ MAP_JS='''(function(){
   var radarLayer=L.tileLayer.wms('https://geo.weather.gc.ca/geomet/?lang=en',{layers:'RADAR_1KM_RRAI',format:'image/png',transparent:true,opacity:0.85});
   var lightningLayer=L.tileLayer.wms('https://geo.weather.gc.ca/geomet/?lang=en',{layers:'Lightning_2.5km_Density',format:'image/png',transparent:true,opacity:0.85});
   smokeLayer.addTo(map);paLayer.addTo(map);stationLayer.addTo(map);fireLayer.addTo(map);camLayer.addTo(map);eventLayer.addTo(map);
-  L.control.layers(null,{'AQHI grid':aqhiLayer,'Smoke (PM2.5 model)':smokeLayer,'Community sensors':paLayer,'Air Quality Stations':stationLayer,'Active fires':fireLayer,'Traffic cameras':camLayer,'Road events':eventLayer,'Radar':radarLayer,'Lightning':lightningLayer},{collapsed:false}).addTo(map);
+  L.control.layers(null,{'AQHI grid':aqhiLayer,'Smoke (PM2.5 model)':smokeLayer,'Community sensors':paLayer,'Air Quality Stations':stationLayer,'Active fires':fireLayer,'Traffic cameras':camLayer,'Road events':eventLayer,'Radar':radarLayer,'Lightning':lightningLayer},{collapsed:true}).addTo(map);
 })();'''
 def build_map_section(lat,lon,fire,cameras,events,mp=None):
  mp=mp or {}
