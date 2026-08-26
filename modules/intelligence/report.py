@@ -1,4 +1,5 @@
 import json
+import os
 from html import escape
 from core.timefmt import format_long,format_short,tz_abbrev
 from core.aqhi import cap as cap_aqhi
@@ -14,7 +15,7 @@ def _hazard_value_html(k,x):
  return f"{v(cap_aqhi(x.get('indicator')) if k=='air_quality' else x.get('indicator'))} {x.get('unit','')}"
 MAP_JS='''(function(){
   var map=L.map('fieldmap',{scrollWheelZoom:false}).setView([POINT.lat,POINT.lon],12);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'&copy; OpenStreetMap contributors &copy; CARTO',maxZoom:19}).addTo(map);
+  var osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);__CARTO_DARK_LAYER_JS__
   function colorForPM25(x){if(x==null)return '#6c757d';if(x<12)return '#2f9e44';if(x<35.4)return '#e0a800';if(x<55.4)return '#e8590c';if(x<150.4)return '#c92a2a';if(x<250.4)return '#862e9c';return '#5c0000';}
   function colorForAQHI(x){if(x==null)return '#6c757d';if(x<=3)return '#2f9e44';if(x<=6)return '#e0a800';if(x<=10)return '#e8590c';return '#c92a2a';}
   function capAQHI(x){if(x==null)return 'n/a';var n=(typeof x==='number')?x:parseFloat(x);return (!isNaN(n)&&n>10)?'10+':x;}
@@ -29,8 +30,17 @@ MAP_JS='''(function(){
   var radarLayer=L.tileLayer.wms('https://geo.weather.gc.ca/geomet/?lang=en',{layers:'RADAR_1KM_RRAI',format:'image/png',transparent:true,opacity:0.85});
   var lightningLayer=L.tileLayer.wms('https://geo.weather.gc.ca/geomet/?lang=en',{layers:'Lightning_2.5km_Density',format:'image/png',transparent:true,opacity:0.85});
   smokeLayer.addTo(map);paLayer.addTo(map);stationLayer.addTo(map);fireLayer.addTo(map);camLayer.addTo(map);eventLayer.addTo(map);
-  L.control.layers(null,{'AQHI grid':aqhiLayer,'Smoke (PM2.5 model)':smokeLayer,'Community sensors':paLayer,'Air Quality Stations':stationLayer,'Active fires':fireLayer,'Traffic cameras':camLayer,'Road events':eventLayer,'Radar':radarLayer,'Lightning':lightningLayer},{collapsed:true}).addTo(map);
+  L.control.layers(__CARTO_BASE_LAYERS__,{'AQHI grid':aqhiLayer,'Smoke (PM2.5 model)':smokeLayer,'Community sensors':paLayer,'Air Quality Stations':stationLayer,'Active fires':fireLayer,'Traffic cameras':camLayer,'Road events':eventLayer,'Radar':radarLayer,'Lightning':lightningLayer},{collapsed:true}).addTo(map);
 })();'''
+CARTO_API_KEY=os.environ.get('CARTO_API_KEY','')
+if CARTO_API_KEY:
+    _carto_layer_js=f"var cartoLayer=L.tileLayer('https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={CARTO_API_KEY}',{{attribution:'&copy; OpenStreetMap contributors &copy; CARTO',subdomains:'abcd',maxZoom:20}});"
+    _carto_base_layers="{'Light':osmLayer,'Dark':cartoLayer}"
+else:
+    _carto_layer_js=''
+    _carto_base_layers="{'Light':osmLayer}"
+MAP_JS=MAP_JS.replace('__CARTO_DARK_LAYER_JS__',_carto_layer_js)
+MAP_JS=MAP_JS.replace('__CARTO_BASE_LAYERS__',_carto_base_layers)
 def build_map_section(lat,lon,fire,cameras,events,mp=None):
  mp=mp or {}
  hotspots=(fire or {}).get('hotspots') or []

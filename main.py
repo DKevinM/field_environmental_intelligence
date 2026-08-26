@@ -1,3 +1,4 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,14 @@ from modules.intelligence.narrative import build as build_narrative
 from modules.intelligence.report import build_html
 TZ='America/Edmonton'
 INDEX_HTML=(Path(__file__).parent/'templates'/'index.html').read_text(encoding='utf-8')
+CARTO_API_KEY=os.environ.get('CARTO_API_KEY','')
+if CARTO_API_KEY:
+    _carto_layer_js=f"var cartoLayer=L.tileLayer('https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={CARTO_API_KEY}',{{attribution:'&copy; OpenStreetMap contributors &copy; CARTO',subdomains:'abcd',maxZoom:20}});"
+    _carto_base_layers="{'Light':osmLayer,'Dark':cartoLayer}"
+else:
+    _carto_layer_js=''
+    _carto_base_layers="{'Light':osmLayer}"
+INDEX_HTML=INDEX_HTML.replace('__CARTO_DARK_LAYER_JS__',_carto_layer_js).replace('__CARTO_BASE_LAYERS__',_carto_base_layers)
 app=FastAPI(title='Field Conditions Report')
 @app.get('/',response_class=HTMLResponse)
 def index():
