@@ -1,4 +1,4 @@
-"""Lightning proximity and radar echo from Environment Canada's public
+"""Lightning proximity and radar echo from ECCC's public
 GeoMet WMS (Canadian Lightning Detection Network + composite radar) — same
 source as edmonton_folk_fest/modules/intelligence/fast_watch.py, adapted
 to this project's (lat, lon) calling convention instead of a cfg dict,
@@ -38,7 +38,7 @@ def _nearest_echo_km(lat, lon, layer, radius_km, px=64, timeout=15):
 def check_lightning(lat, lon, radius_km=40):
     try:
         km = _nearest_echo_km(lat, lon, 'Lightning_2.5km_Density', radius_km)
-        return {'status': 'ok', 'nearest_km': round(km, 1) if km is not None else None, 'source': 'Environment Canada CLDN (10 min density grid)'}
+        return {'status': 'ok', 'nearest_km': round(km, 1) if km is not None else None, 'source': 'ECCC CLDN (10 min density grid)'}
     except Exception as ex:
         return {'status': 'error', 'error': f'{type(ex).__name__}: {ex}'}
 
@@ -46,6 +46,6 @@ def check_lightning(lat, lon, radius_km=40):
 def check_radar_echo(lat, lon, radius_km=40):
     try:
         km = _nearest_echo_km(lat, lon, 'RADAR_1KM_RRAI', radius_km)
-        return {'status': 'ok', 'nearest_km': round(km, 1) if km is not None else None, 'source': 'Environment Canada composite radar'}
+        return {'status': 'ok', 'nearest_km': round(km, 1) if km is not None else None, 'source': 'ECCC composite radar'}
     except Exception as ex:
         return {'status': 'error', 'error': f'{type(ex).__name__}: {ex}'}

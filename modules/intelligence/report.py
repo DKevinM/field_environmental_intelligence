@@ -59,11 +59,11 @@ def build_html(lat,lon,generated_at,tz,w,aq,fx,a,n,fire,cameras,events,alerts,wx
  wx_status=(wx_alerts or {}).get('status')
  wx=(wx_alerts or {}).get('alerts') or []
  if wx:
-  wx_section=('<section class="panel" style="border-color:#e8590c"><h2>Active Environment Canada alerts</h2>'+''.join(f"<article style='margin-bottom:12px'><b>{escape(x.get('name') or '').title()}</b> — {escape(x.get('region') or '')}<div style='white-space:pre-wrap;font-size:14px;color:#c9d4de;margin-top:6px'>{escape((x.get('text') or '')[:600])}{'…' if len(x.get('text') or '')>600 else ''}</div></article>" for x in wx)+'</section>')
+  wx_section=('<section class="panel" style="border-color:#e8590c"><h2>Active ECCC alerts</h2>'+''.join(f"<article style='margin-bottom:12px'><b>{escape(x.get('name') or '').title()}</b> — {escape(x.get('region') or '')}<div style='white-space:pre-wrap;font-size:14px;color:#c9d4de;margin-top:6px'>{escape((x.get('text') or '')[:600])}{'…' if len(x.get('text') or '')>600 else ''}</div></article>" for x in wx)+'</section>')
  elif wx_status=='ok':
-  wx_section='<section class="panel" style="border-color:#2f9e44"><p style="margin:0">✓ No active Environment Canada weather alerts for this location.</p></section>'
+  wx_section='<section class="panel" style="border-color:#2f9e44"><p style="margin:0">✓ No active ECCC weather alerts for this location.</p></section>'
  else:
-  wx_section=f'<section class="panel" style="border-color:#e0a800"><p style="margin:0">⚠ Could not retrieve Environment Canada weather alerts for this location{" (" + escape(str((wx_alerts or {}).get("error"))) + ")" if (wx_alerts or {}).get("error") else ""} — check manually before relying on this report.</p></section>'
+  wx_section=f'<section class="panel" style="border-color:#e0a800"><p style="margin:0">⚠ Could not retrieve ECCC weather alerts for this location{" (" + escape(str((wx_alerts or {}).get("error"))) + ")" if (wx_alerts or {}).get("error") else ""} — check manually before relying on this report.</p></section>'
  bulletins=(alerts or {}).get('alerts') or []
  bulletin_section=('<section class="panel" style="border-color:#e0a800"><h2>Provincial travel bulletins (511 Alberta)</h2><p style="font-size:13px;color:#9fb0bf;margin-top:0">Province-wide, not filtered to this specific location — confirm relevance before acting on it.</p>'+''.join(f"<article style='margin-bottom:12px'><b>{escape(x.get('message') or '')}</b><div style='font-size:14px;color:#c9d4de;margin-top:6px'>{escape(x.get('notes') or '')}</div></article>" for x in bulletins)+'</section>') if bulletins else ''
  cards=''.join(f"<article class='hazard {R.get(x['risk'],'unknown')}'><small>{k.replace('_',' ').title()}</small><b>{x['risk']}</b><span>{_hazard_value_html(k,x)}</span></article>" for k,x in a['hazards'].items())

@@ -36,7 +36,7 @@ def assess(w,aq,fx,tz='America/Edmonton',thresholds=None,shear=None,lightning=No
     # Wind shear: surface vs upper-level HRDPS wind direction divergence (see modules/wind_shear)
     shear=shear or {}; ts=t.get('wind_shear',{'moderate':45,'high':90,'extreme':135})
     hazards['wind_shear']={'risk':level(shear.get('direction_diff_deg'),ts['moderate'],ts['high'],ts['extreme']),'indicator':shear.get('direction_diff_deg'),'unit':f"° direction diff ({shear.get('low_level_m',10)}m vs {shear.get('high_level_m',120)}m)"}
-    # Lightning: Environment Canada CLDN proximity (see modules/intelligence/fast_watch) — live at request time, not forecast-inferred
+    # Lightning: ECCC CLDN proximity (see modules/intelligence/fast_watch) — live at request time, not forecast-inferred
     lightning=lightning or {}
     hazards['lightning']={'risk':lightning_risk(lightning.get('nearest_km')) if lightning.get('status')=='ok' else 'UNKNOWN','indicator':lightning.get('nearest_km'),'unit':'km to nearest strike (CLDN)'}
     return {'overall_risk':top(*[x['risk'] for x in hazards.values()]),'hazards':hazards,'weather_metrics':{'humidex':hx,**s}}

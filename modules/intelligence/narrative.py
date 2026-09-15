@@ -7,9 +7,9 @@ def sensor_label(source='VIIRS_SNPP_NRT'):
 def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_alerts=None,radar=None):
  c=w.get('current',{}); m=a['weather_metrics']; h=a['hazards']
  parts=[f"At this location, temperature is {f(c.get('temperature_c'),1)}°C and feels near {f(c.get('apparent_temperature_c'),1)}°C. Winds are {f(c.get('wind_speed_kmh'))} km/h from {compass(c.get('wind_direction_deg'))}, gusting near {f(c.get('wind_gust_kmh'))} km/h."]
- if (radar or {}).get('status')=='ok' and radar.get('nearest_km') is not None:parts.append(f"Environment Canada radar shows precipitation echo within {radar['nearest_km']} km of this location right now.")
+ if (radar or {}).get('status')=='ok' and radar.get('nearest_km') is not None:parts.append(f"ECCC radar shows precipitation echo within {radar['nearest_km']} km of this location right now.")
  wx=(wx_alerts or {}).get('alerts') or []
- if wx:parts.append(f"Environment Canada has {len(wx)} active alert(s) in effect for this exact location: {', '.join(sorted(set(x['name'] for x in wx)))}.")
+ if wx:parts.append(f"ECCC has {len(wx)} active alert(s) in effect for this exact location: {', '.join(sorted(set(x['name'] for x in wx)))}.")
  parts.append(f"The nearest current AQHI is {faqhi(aq.get('aqhi'))} at {aq.get('station_name','the nearest point')}, {f(aq.get('distance_km'),1)} km away." if aq.get('aqhi') is not None else 'A valid current AQHI was not available for this location.')
  pollutant=(aq.get('pollutant') or {})
  if pollutant.get('status')=='ok':parts.append(f"The nearest air monitoring station ({pollutant.get('station_name')}, {f(pollutant.get('distance_km'),1)} km) reports fine particulate matter (PM2.5) at {f(pollutant.get('value'),1)} µg/m³.")
@@ -42,17 +42,17 @@ def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_ale
  headline=f"Overall conditions at this location are {a['overall_risk']}."+(f" Primary concerns are {', '.join(key)}." if key else '')
  parts.append(headline); rec=[]
  if h['thunderstorm']['risk'] in ('HIGH','EXTREME'):rec.append('Lightning risk present — confirm shelter/pause procedures before working outdoors.')
- if h['lightning']['risk']=='EXTREME':rec.append(f"Lightning detected within {h['lightning']['indicator']} km (Environment Canada CLDN, live) — shelter immediately, this is a real-time detection, not a forecast.")
- elif h['lightning']['risk']=='HIGH':rec.append(f"Lightning detected within {h['lightning']['indicator']} km (Environment Canada CLDN, live) — monitor closely and be ready to shelter.")
+ if h['lightning']['risk']=='EXTREME':rec.append(f"Lightning detected within {h['lightning']['indicator']} km (ECCC CLDN, live) — shelter immediately, this is a real-time detection, not a forecast.")
+ elif h['lightning']['risk']=='HIGH':rec.append(f"Lightning detected within {h['lightning']['indicator']} km (ECCC CLDN, live) — monitor closely and be ready to shelter.")
  if h['wind_shear']['risk'] in ('HIGH','EXTREME'):rec.append('Surface and upper-level winds are diverging sharply — expect smoke/dust/plume transport direction to differ from surface wind and reassess more frequently.')
  if h['heat']['risk'] in ('HIGH','EXTREME'):rec.append('High heat — increase hydration, take shade breaks, watch for heat-illness symptoms.')
  if h['wind']['risk'] in ('HIGH','EXTREME'):rec.append('High wind — secure loose equipment, use caution with ladders/elevated work.')
  if h['precipitation']['risk'] in ('HIGH','EXTREME'):rec.append('Heavy precipitation possible — plan for wet-weather PPE and footing hazards.')
  if closures:rec.append('Confirm an alternate route — a full closure is reported near this location.')
- if wx:rec.append(f"Active Environment Canada alert(s) for this location — review details before starting work: {', '.join(sorted(set(x['name'] for x in wx)))}.")
+ if wx:rec.append(f"Active ECCC alert(s) for this location — review details before starting work: {', '.join(sorted(set(x['name'] for x in wx)))}.")
  aqmsg=eccc_messages(h['air_quality']['risk'])
  if aqmsg:
-  rec.append(f"Environment Canada AQHI guidance — general population: {aqmsg['general']}")
-  rec.append(f"Environment Canada AQHI guidance — at-risk populations: {aqmsg['at_risk']}")
+  rec.append(f"ECCC AQHI guidance — general population: {aqmsg['general']}")
+  rec.append(f"ECCC AQHI guidance — at-risk populations: {aqmsg['at_risk']}")
  if not rec:rec=['No elevated hazards detected for this location at this time.']
  return {'headline':headline,'summary':' '.join(parts),'summary_points':parts,'recommendations':rec}
