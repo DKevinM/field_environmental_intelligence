@@ -42,7 +42,7 @@ MAP_JS='''(function(){
   var eventLayer=L.layerGroup(EVENTS.map(function(e){return L.circleMarker([e.lat,e.lon],{radius:7,color:'#fff',weight:1,fillColor:e.is_full_closure?'#c92a2a':'#e0a800',fillOpacity:0.9}).bindPopup('<b>'+(e.roadway||'Road event')+'</b><br>'+(e.description||'')+'<br>'+e.distance_km+' km '+e.direction);}));
   var radarLayer=L.tileLayer.wms('https://geo.weather.gc.ca/geomet/?lang=en',{layers:'RADAR_1KM_RRAI',format:'image/png',transparent:true,opacity:0.85});
   var lightningLayer=L.tileLayer.wms('https://geo.weather.gc.ca/geomet/?lang=en',{layers:'Lightning_2.5km_Density',format:'image/png',transparent:true,opacity:0.85});
-  smokeLayer.addTo(map);paLayer.addTo(map);stationLayer.addTo(map);fireLayer.addTo(map);camLayer.addTo(map);eventLayer.addTo(map);
+  paLayer.addTo(map);stationLayer.addTo(map);fireLayer.addTo(map);camLayer.addTo(map);eventLayer.addTo(map);
   L.control.layers(__CARTO_BASE_LAYERS__,{'AQHI grid':aqhiLayer,'Smoke (PM2.5 model)':smokeLayer,'Community sensors':paLayer,'Air Quality Stations':stationLayer,'Active fires':fireLayer,'Traffic cameras':camLayer,'Road events':eventLayer,'Radar':radarLayer,'Lightning':lightningLayer},{collapsed:true}).addTo(map);
 })();'''
 CARTO_API_KEY=os.environ.get('CARTO_API_KEY','')
@@ -66,7 +66,7 @@ def build_map_section(lat,lon,fire,cameras,events,mp=None):
  stations=mp.get('stations') or []
  point={'lat':lat,'lon':lon}
  data_js=(f"const POINT={json.dumps(point)};\nconst FIRE={json.dumps(fire_pts)};\nconst CAMERAS={json.dumps(cam_pts)};\nconst EVENTS={json.dumps(ev_pts)};\nconst AQHI_GRID={json.dumps(aqhi_grid)};\nconst FIRESMOKE={json.dumps(firesmoke)};\nconst PURPLEAIR={json.dumps(purpleair)};\nconst STATIONS={json.dumps(stations)};\n")
- return f'<section class="panel"><h2>Local area map</h2><div id="fieldmap" style="height:420px;border-radius:12px;overflow:hidden"></div><script>{data_js}{MAP_JS}</script></section>'
+ return f'<section class="panel"><h2>Local area map</h2><div id="fieldmap" style="height:max(560px,70vh);border-radius:12px;overflow:hidden"></div><script>{data_js}{MAP_JS}</script></section>'
 def build_html(lat,lon,generated_at,tz,w,aq,fx,a,n,fire,cameras,events,alerts,wx_alerts=None,mp=None,back_url='/'):
  c=w.get('current',{})
  wx_status=(wx_alerts or {}).get('status')
