@@ -72,7 +72,7 @@ def report(lat:float=Query(...,ge=-90,le=90),lon:float=Query(...,ge=-180,le=180)
         lightning_f=ex.submit(check_lightning,lat,lon)
         radar_f=ex.submit(check_radar_echo,lat,lon)
         shear=shear_f.result(); lightning=lightning_f.result(); radar=radar_f.result()
-    a=assess(w,aq,fx,TZ,shear=shear,lightning=lightning)
+    a=assess(w,aq,fx,TZ,shear=shear,lightning=lightning,wx_alerts=wx_alerts)
     n=build_narrative(w,aq,fx,a,fire,events,alerts,ws.get('nearest') if ws.get('status')=='ok' else None,wx_alerts,radar)
     now=datetime.now(ZoneInfo(TZ)).isoformat(timespec='seconds')
     back='/'
