@@ -27,12 +27,30 @@ else:
     _carto_layer_js=''
     _carto_base_layers="{'Light':osmLayer}"
 INDEX_HTML=INDEX_HTML.replace('__CARTO_DARK_LAYER_JS__',_carto_layer_js).replace('__CARTO_BASE_LAYERS__',_carto_base_layers)
+# Airshed start pages (2026-11-20): same /report for every click; each page opens on its
+# zone outline and the report's "check a different location" link comes back to it.
+# Outlines = LiveMap/data/{ACA,WCAS}.geojson simplified (static/zones/, 3-11 KB).
+ZONES={
+    'wcas':{'acronym':'WCAS','name':'West Central Airshed Society'},
+    'aca':{'acronym':'ACA','name':'Alberta Capital Airshed'},
+}
+_ZONE_TEMPLATE=(Path(__file__).parent/'templates'/'zone.html').read_text(encoding='utf-8')
+ZONE_HTML={k:(_ZONE_TEMPLATE.replace('__CARTO_DARK_LAYER_JS__',_carto_layer_js).replace('__CARTO_BASE_LAYERS__',_carto_base_layers)
+              .replace('__ZONE_GEOJSON__',(Path(__file__).parent/'static'/'zones'/f'{k}.geojson').read_text(encoding='utf-8'))
+              .replace('__ACRONYM__',z['acronym']).replace('__ZONE_NAME__',z['name']).replace('__AREA__',k))
+           for k,z in ZONES.items()}
 app=FastAPI(title='Field Conditions Report')
 @app.get('/',response_class=HTMLResponse)
 def index():
     return INDEX_HTML
+@app.get('/wcas',response_class=HTMLResponse)
+def wcas_start():
+    return ZONE_HTML['wcas']
+@app.get('/aca',response_class=HTMLResponse)
+def aca_start():
+    return ZONE_HTML['aca']
 @app.get('/report',response_class=HTMLResponse)
-def report(lat:float=Query(...,ge=-90,le=90),lon:float=Query(...,ge=-180,le=180)):
+def report(lat:float=Query(...,ge=-90,le=90),lon:float=Query(...,ge=-180,le=180),area:str|None=None,z:int|None=Query(None,ge=1,le=20)):
     w=load_weather(lat,lon,TZ)
     aq=load_current_aqhi(lat,lon)
     fx=load_forecast_aqhi(lat,lon)
@@ -57,4 +75,7 @@ def report(lat:float=Query(...,ge=-90,le=90),lon:float=Query(...,ge=-180,le=180)
     a=assess(w,aq,fx,TZ,shear=shear,lightning=lightning)
     n=build_narrative(w,aq,fx,a,fire,events,alerts,ws.get('nearest') if ws.get('status')=='ok' else None,wx_alerts,radar)
     now=datetime.now(ZoneInfo(TZ)).isoformat(timespec='seconds')
-    return build_html(lat,lon,now,TZ,w,aq,fx,a,n,fire,cameras,events,alerts,wx_alerts,mp)
+    back='/'
+    if area in ZONES:
+        back=f'/{area}?c={lat:.5f},{lon:.5f},{z or 11}'
+    return build_html(lat,lon,now,TZ,w,aq,fx,a,n,fire,cameras,events,alerts,wx_alerts,mp,back_url=back)

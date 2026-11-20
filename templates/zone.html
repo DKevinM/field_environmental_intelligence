@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>__ACRONYM__ Field Conditions</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+body{margin:0;background:#0f1720;color:#f4f7fa;font-family:Arial}
+header{max-width:1100px;margin:auto;padding:16px 20px 14px}
+h1{margin:0 0 6px;font-size:26px}
+h1 small{display:block;font-size:15px;font-weight:normal;color:#9fb0bf;margin-top:2px}
+#map{height:calc(100vh - 170px);min-height:360px;width:100%}
+button{background:#4dabf7;color:#0f1720;border:none;padding:10px 16px;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer}
+button:disabled{background:#304152;color:#9fb0bf}
+.steps{margin:0 0 12px;padding:0;list-style:none;font-size:16px;line-height:1.5}
+.steps b{color:#4dabf7}
+.zone-label{background:rgba(15,23,32,.85);color:#f4f7fa;border:1px solid #4dabf7;border-radius:6px;font-weight:bold;padding:2px 8px}
+.zone-label:before{display:none}
+@media (max-width:600px){h1{font-size:21px}.steps{font-size:15px}#map{height:calc(100vh - 210px)}}
+</style></head><body>
+<header>
+<h1>__ACRONYM__ Field Conditions<small>__ZONE_NAME__</small></h1>
+<ol class="steps">
+<li><b>1.</b> Zoom in to where you will be working.</li>
+<li><b>2.</b> Tap that spot on the map for the current conditions there.</li>
+</ol>
+<button id="locbtn" onclick="useMyLocation()">Or use my current location</button>
+</header>
+<div id="map"></div>
+<script>
+var AREA='__AREA__';
+var ZONE=__ZONE_GEOJSON__;
+var map=L.map('map',{zoomSnap:0.25});
+var osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
+__CARTO_DARK_LAYER_JS__
+L.control.layers(__CARTO_BASE_LAYERS__,null,{collapsed:true}).addTo(map);
+var zone=L.geoJSON(ZONE,{interactive:false,style:{color:'#0b5ed7',weight:3,fillColor:'#4dabf7',fillOpacity:0.08}}).addTo(map);
+// Back from a report: reopen where the person was (?c=lat,lon,zoom), with the last spot marked.
+var c=(new URLSearchParams(location.search).get('c')||'').split(',').map(Number);
+if(c.length===3&&c.every(isFinite)&&Math.abs(c[0])<=90&&Math.abs(c[1])<=180){
+  map.setView([c[0],c[1]],Math.min(18,Math.max(5,c[2])));
+  L.circleMarker([c[0],c[1]],{radius:7,color:'#fff',weight:2,fillColor:'#0b5ed7',fillOpacity:1}).addTo(map).bindTooltip('Last spot checked');
+}else{
+  map.fitBounds(zone.getBounds(),{padding:[20,20]});
+  L.tooltip({permanent:true,direction:'center',className:'zone-label'}).setLatLng(zone.getBounds().getCenter()).setContent('__ACRONYM__ zone').addTo(map);
+}
+map.on('click',function(e){goTo(e.latlng.lat,e.latlng.lng);});
+function goTo(lat,lon){window.location.href='/report?lat='+lat.toFixed(5)+'&lon='+lon.toFixed(5)+'&area='+AREA+'&z='+Math.round(map.getZoom());}
+function useMyLocation(){
+  var btn=document.getElementById('locbtn');
+  if(!navigator.geolocation){alert('Geolocation is not available on this device/browser.');return;}
+  btn.disabled=true;btn.textContent='Locating...';
+  navigator.geolocation.getCurrentPosition(
+    function(pos){goTo(pos.coords.latitude,pos.coords.longitude);},
+    function(err){btn.disabled=false;btn.textContent='Or use my current location';alert('Could not get your location: '+err.message);},
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
+</script>
+</body></html>
