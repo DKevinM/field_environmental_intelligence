@@ -2,7 +2,8 @@ import os,csv,io,time,requests
 from core.geometry import haversine_km,bearing_deg,compass
 CONF_MAP={'l':0.3,'n':0.6,'h':0.9}
 FIRMS_BASE='https://firms.modaps.eosdis.nasa.gov'
-FIRMS_SOURCE='VIIRS_SNPP_NRT'
+# Suomi NPP stopped sending 2026-11-03 (last detections Nov 2); NOAA-20 and NOAA-21 carry the same VIIRS sensor
+FIRMS_SOURCES=('VIIRS_NOAA20_NRT','VIIRS_NOAA21_NRT','VIIRS_SNPP_NRT')
 # Covers all of Alberta plus enough margin that a 150km search radius from any
 # point in the province stays inside this box - fetched once and cached rather
 # than per-click, since NASA's API can take 5-15s+ to respond.
@@ -24,9 +25,15 @@ def bbox_for(lat,lon,radius_km):
     return lon-dlon,lat-dlat,lon+dlon,lat+dlat
 def _fetch_broad(key,day_range=2,timeout=15):
     w,s,e,n=BROAD_BBOX
-    url=f"{FIRMS_BASE}/api/area/csv/{key}/{FIRMS_SOURCE}/{w:.4f},{s:.4f},{e:.4f},{n:.4f}/{day_range}"
-    r=requests.get(url,timeout=timeout); r.raise_for_status()
-    return list(csv.DictReader(io.StringIO(r.text)))
+    rows,errs=[],[]
+    for src in FIRMS_SOURCES:      # one satellite failing doesn't blank the others
+        try:
+            r=requests.get(f"{FIRMS_BASE}/api/area/csv/{key}/{src}/{w:.4f},{s:.4f},{e:.4f},{n:.4f}/{day_range}",timeout=timeout); r.raise_for_status()
+            rows+=list(csv.DictReader(io.StringIO(r.text)))
+        except Exception as ex:
+            errs.append(ex)
+    if len(errs)==len(FIRMS_SOURCES):raise errs[0]
+    return rows
 def _get_rows(key,day_range,timeout):
     now=time.time()
     if _cache['rows'] is not None and (now-_cache['fetched_at'])<CACHE_TTL_SECONDS:

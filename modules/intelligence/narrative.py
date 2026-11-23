@@ -12,7 +12,7 @@ def daylight(w):
     clock=lambda d:d.strftime('%-I:%M %p').lower().replace('am','a.m.').replace('pm','p.m.')
     return clock(rise),clock(sset),round(left,1),now<rise
 def f(v,d=0):return 'unavailable' if v is None else f'{v:.{d}f}'
-def sensor_label(source='VIIRS_SNPP_NRT'):
+def sensor_label(source='VIIRS_NOAA20_NRT'):
     fam=(source or '').split('_')[0]
     return {'VIIRS':'NASA FIRMS – VIIRS','MODIS':'NASA FIRMS – MODIS'}.get(fam,'NASA FIRMS')
 def build(w,aq,fx,a,fire=None,events=None,alerts=None,weatherstation=None,wx_alerts=None,radar=None):
